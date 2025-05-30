@@ -5,6 +5,12 @@ rustflags = ["-C", "target-feature=+crt-static", "-C", "link-args=/NODEFAULTLIB:
 [target.'cfg(target_os="macos")']
 rustflags = [
     "-C", "link-args=-sectcreate __CGPreLoginApp __cgpreloginapp /dev/null",
+      "-C", "link-arg=/DEFAULTLIB:swresample.lib",
+  "-C", "link-arg=/DEFAULTLIB:avcodec.lib",
+  "-C", "link-arg=/DEFAULTLIB:avutil.lib",
+  "-C", "link-arg=/DEFAULTLIB:mfplat.lib",
+  "-C", "link-arg=/DEFAULTLIB:mfuuid.lib",
+  "-C", "link-arg=/LIBPATH:E:\\vcpkg\\installed\\x64-windows-static\\lib"  
 ]
 #[target.'cfg(target_os="linux")']
 # glibc-static required, this may fix https://github.com/rustdesk/rustdesk/issues/9103, but I do not want this big change

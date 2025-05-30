@@ -125,6 +125,11 @@ def make_parser():
         help='Build windows portable'
     )
     parser.add_argument(
+        '--win7',
+        action='store_true',
+        help='Build with Windows 7 compatibility'
+    )
+    parser.add_argument(
         '--unix-file-copy-paste',
         action='store_true',
         help='Build with unix file copy paste feature'
@@ -323,8 +328,6 @@ def build_flutter_deb(version, features):
     system2('flutter build linux --release')
     system2('mkdir -p tmpdeb/usr/bin/')
     system2('mkdir -p tmpdeb/usr/share/rustdesk')
-    system2('mkdir -p tmpdeb/etc/rustdesk/')
-    system2('mkdir -p tmpdeb/etc/pam.d/')
     system2('mkdir -p tmpdeb/usr/share/rustdesk/files/systemd/')
     system2('mkdir -p tmpdeb/usr/share/icons/hicolor/256x256/apps/')
     system2('mkdir -p tmpdeb/usr/share/icons/hicolor/scalable/apps/')
@@ -445,9 +448,9 @@ def build_flutter_windows(version, features, skip_portable_pack):
     if skip_portable_pack:
         return
     os.chdir('libs/portable')
-    system2('pip3 install -r requirements.txt')
+    system2('pip install -r requirements.txt')
     system2(
-        f'python3 ./generate.py -f ../../{flutter_build_dir_2} -o . -e ../../{flutter_build_dir_2}/rustdesk.exe')
+        f'python ./generate.py -f ../../{flutter_build_dir_2} -o . -e ../../{flutter_build_dir_2.rstrip("/")}/rustdesk.exe')
     os.chdir('../..')
     if os.path.exists('./rustdesk_portable.exe'):
         os.replace('./target/release/rustdesk-portable-packer.exe',
@@ -463,22 +466,26 @@ def build_flutter_windows(version, features, skip_portable_pack):
 
 
 def main():
-    global skip_cargo
     parser = make_parser()
     args = parser.parse_args()
 
-    if os.path.exists(exe_path):
-        os.unlink(exe_path)
-    if os.path.isfile('/usr/bin/pacman'):
-        system2('git checkout src/ui/common.tis')
+    if args.skip_cargo:
+        global skip_cargo
+        skip_cargo = True
+        print("Skip cargo build process")
+
+    if windows and args.win7:
+        # 设置Windows 7兼容性环境变量 - 修复语法
+        os.environ["RUSTFLAGS"] = "-C target-feature=+crt-static -C link-arg=/SUBSYSTEM:WINDOWS,5.01"
+        print("Building with Windows 7 compatibility")
+
+    is_flutter = args.flutter
+    features = ""
+    if not is_flutter:
+        system2('python3 res/inline-sciter.py')
     version = get_version()
     features = ','.join(get_features(args))
     flutter = args.flutter
-    if not flutter:
-        system2('python3 res/inline-sciter.py')
-    print(args.skip_cargo)
-    if args.skip_cargo:
-        skip_cargo = True
     portable = args.portable
     package = args.package
     if package:

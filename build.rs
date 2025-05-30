@@ -4,8 +4,17 @@ fn build_windows() {
     let file2 = "src/platform/windows_delete_test_cert.cc";
     cc::Build::new().file(file).file(file2).compile("windows");
     println!("cargo:rustc-link-lib=WtsApi32");
+    println!("cargo:rustc-link-lib=mfplat");
+    println!("cargo:rustc-link-lib=mfuuid");
+    println!("cargo:rustc-link-lib=strmiids");
     println!("cargo:rerun-if-changed={}", file);
     println!("cargo:rerun-if-changed={}", file2);
+    
+    // 添加FFmpeg库的链接
+    if cfg!(feature = "hwcodec") {
+        println!("cargo:rustc-link-lib=swresample");
+        println!("cargo:rustc-link-lib=avutil");
+    }
 }
 
 #[cfg(target_os = "macos")]
@@ -80,6 +89,19 @@ fn install_android_deps() {
     println!("cargo:rustc-link-lib=OpenSLES");
 }
 
+#[cfg(windows)]
+fn link_ffmpeg_libs() {
+    if cfg!(feature = "hwcodec") {
+        // 添加vcpkg安装的FFmpeg库路径
+        if let Ok(vcpkg_path) = std::env::var("VCPKG_ROOT") {
+            let lib_path = format!("{}/installed/x64-windows-static/lib", vcpkg_path);
+            println!("cargo:rustc-link-search={}", lib_path);
+        } else if std::path::Path::new("E:/vcpkg/installed/x64-windows-static/lib").exists() {
+            println!("cargo:rustc-link-search=E:/vcpkg/installed/x64-windows-static/lib");
+        }
+    }
+}
+
 fn main() {
     hbb_common::gen_version();
     install_android_deps();
@@ -87,6 +109,8 @@ fn main() {
     build_manifest();
     #[cfg(windows)]
     build_windows();
+    #[cfg(windows)]
+    link_ffmpeg_libs();
     let target_os = std::env::var("CARGO_CFG_TARGET_OS").unwrap();
     if target_os == "macos" {
         #[cfg(target_os = "macos")]

@@ -44,6 +44,12 @@ fn initialize(app_dir: &str, custom_client_config: &str) {
     } else {
         crate::read_custom_client(custom_client_config);
     }
+    
+    // 在这里调用设置默认服务器的函数
+    // 这样Flutter启动后第一时间就会设置默认服务器配置
+    crate::common::set_default_servers();
+    log::info!("设置默认服务器配置");
+    
     #[cfg(target_os = "android")]
     {
         // flexi_logger can't work when android_logger initialized.
@@ -2701,4 +2707,21 @@ pub mod server_side {
     ) -> jboolean {
         jboolean::from(crate::server::is_clipboard_service_ok())
     }
+}
+
+pub fn main_get_server_configs_sync() -> SyncReturn<String> {
+    let custom_server = hbb_common::config::Config::get_option("custom-rendezvous-server");
+    let api_server = hbb_common::config::Config::get_option("api-server");
+    let relay_server = hbb_common::config::Config::get_option("relay-server");
+    let key = hbb_common::config::Config::get_option("key");
+    
+    // 将配置转换为JSON格式返回
+    let configs = serde_json::json!({
+        "custom_rendezvous_server": custom_server,
+        "api_server": api_server,
+        "relay_server": relay_server,
+        "key": key,
+    });
+    
+    SyncReturn(configs.to_string())
 }
