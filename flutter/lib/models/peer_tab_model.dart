@@ -109,10 +109,16 @@ class PeerTabModel with ChangeNotifier {
       debugPrint("failed to get peer tab order list: $e");
     }
     // init currentTab
-    _currentTab =
-        int.tryParse(bind.getLocalFlutterOption(k: kOptionPeerTabIndex)) ?? 0;
-    if (_currentTab < 0 || _currentTab >= maxTabCount) {
-      _currentTab = 0;
+    final tabIndexOption = bind.getLocalFlutterOption(k: kOptionPeerTabIndex);
+    if (tabIndexOption.isEmpty) {
+      // 默认设置为Address book (3)
+      _currentTab = 3;
+      bind.setLocalFlutterOption(k: kOptionPeerTabIndex, v: "3");
+    } else {
+      _currentTab = int.tryParse(tabIndexOption) ?? 0;
+      if (_currentTab < 0 || _currentTab >= maxTabCount) {
+        _currentTab = 0;
+      }
     }
     _trySetCurrentTabToFirstVisibleEnabled();
   }

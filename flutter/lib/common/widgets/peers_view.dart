@@ -58,6 +58,13 @@ final peerSearchText = "".obs;
 RxString? _peerSort;
 RxString get peerSort {
   _peerSort ??= bind.getLocalFlutterOption(k: kOptionPeerSorting).obs;
+  if (_peerSort!.isEmpty) {
+    _peerSort!.value = PeerSortType.remoteId;
+    bind.setLocalFlutterOption(
+      k: kOptionPeerSorting,
+      v: PeerSortType.remoteId,
+    );
+  }
   return _peerSort!;
 }
 

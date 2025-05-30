@@ -83,6 +83,13 @@ class _PeerTabPageState extends State<PeerTabPage>
           : int.parse(uiType) == 1
               ? PeerUiType.tile
               : PeerUiType.list;
+    } else {
+      // 默认设置为tile类型
+      peerCardUiType.value = PeerUiType.tile;
+      bind.setLocalFlutterOption(
+        k: kOptionPeerCardUiType,
+        v: "1",
+      );
     }
     hideAbTagsPanel.value =
         bind.mainGetLocalOption(key: kOptionHideAbTagsPanel) == 'Y';

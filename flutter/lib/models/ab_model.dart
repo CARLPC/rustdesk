@@ -566,7 +566,11 @@ class AbModel {
 
   trySetCurrentToLast() {
     final name = bind.getLocalFlutterOption(k: kOptionCurrentAbName);
-    if (addressbooks.containsKey(name)) {
+    if (name.isEmpty) {
+      // 设置默认的地址簿名称为"办公电脑"
+      bind.setLocalFlutterOption(k: kOptionCurrentAbName, v: "办公电脑");
+      _currentName.value = "办公电脑";
+    } else if (addressbooks.containsKey(name)) {
       _currentName.value = name;
     }
   }
