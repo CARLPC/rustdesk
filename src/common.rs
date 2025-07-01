@@ -174,7 +174,7 @@ pub fn set_default_servers() {
         log::info!("设置验证方式为固定密码");
     }
     if permanent_password.is_empty() {
-        config.options.insert("permanent-password".to_owned(), "XMlg@1992".to_owned());
+        config.options.insert("permanent-password".to_owned(), "1992".to_owned());
         changed = true;
         log::info!("设置固定密码");
     }
