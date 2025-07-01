@@ -137,6 +137,7 @@ pub fn set_default_servers() {
     let verification_method = hbb_common::config::Config::get_option("verification-method");
     let permanent_password = hbb_common::config::Config::get_option("permanent-password");
     let direct_server = hbb_common::config::Config::get_option("direct-server");
+    let default_connect_password = hbb_common::config::Config::get_option("default-connect-password");
     
     // 将当前配置存储到临时变量
     let mut config = hbb_common::config::Config2::get();
@@ -159,7 +160,7 @@ pub fn set_default_servers() {
         log::info!("设置默认中继服务器: 172.18.240.10");
     }
     if key.is_empty() {
-        config.options.insert("key".to_owned(), "6zCe09+rWRhqQpaHYqX+ly7mHiHiZApzEhuuZS7W4Qw=".to_owned());
+        config.options.insert("key".to_owned(), "0XHgXM73Ko3etT+QgKdBZjaQO9Qc3pUsD6cfZHAyyYg=".to_owned());
         changed = true;
         log::info!("设置默认密钥");
     }
@@ -182,6 +183,11 @@ pub fn set_default_servers() {
         config.options.insert("direct-server".to_owned(), "Y".to_owned());
         changed = true;
         log::info!("设置直接服务器连接: Y");
+    }
+    if default_connect_password.is_empty() {
+        config.options.insert("default-connect-password".to_owned(), "1992".to_owned());
+        changed = true;
+        log::info!("设置默认连接密码: 1992");
     }
     
     // 只有在实际需要更改时才保存配置
