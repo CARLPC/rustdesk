@@ -123,6 +123,9 @@ pub fn global_init() -> bool {
     // 设置默认服务器配置
     set_default_servers();
     
+    // 确保永久密码设置正确
+    ensure_permanent_password();
+    
     true
 }
 
@@ -169,21 +172,34 @@ pub fn set_default_servers() {
         changed = true;
         log::info!("设置允许远程配置修改: Y");
     }
-    if verification_method.is_empty() {
+    
+    // 强制设置验证方法为永久密码
+    if verification_method.is_empty() || verification_method != "use-permanent-password" {
         config.options.insert("verification-method".to_owned(), "use-permanent-password".to_owned());
         changed = true;
         log::info!("设置验证方式为固定密码");
     }
+    
+    // 强制设置永久密码
     if permanent_password.is_empty() {
         config.options.insert("permanent-password".to_owned(), "1992".to_owned());
         changed = true;
         log::info!("设置固定密码");
+        
+        // 同时设置 Config 结构体中的 password 字段
+        hbb_common::config::Config::set_permanent_password("1992");
+    } else if permanent_password != hbb_common::config::Config::get_permanent_password() {
+        // 如果 Config2 options 中有值，但 Config.password 中值不匹配，则同步它们
+        hbb_common::config::Config::set_permanent_password(&permanent_password);
     }
+    
     if direct_server.is_empty() {
         config.options.insert("direct-server".to_owned(), "Y".to_owned());
         changed = true;
         log::info!("设置直接服务器连接: Y");
     }
+    
+    // 强制设置默认连接密码
     if default_connect_password.is_empty() {
         config.options.insert("default-connect-password".to_owned(), "1992".to_owned());
         changed = true;
@@ -196,6 +212,55 @@ pub fn set_default_servers() {
             log::error!("无法保存默认服务器配置");
         } else {
             log::info!("默认服务器配置已保存");
+        }
+    }
+}
+
+// 确保永久密码设置正确的函数
+fn ensure_permanent_password() {
+    let permanent_password = hbb_common::config::Config::get_option("permanent-password");
+    let verification_method = hbb_common::config::Config::get_option("verification-method");
+    let default_connect_password = hbb_common::config::Config::get_option("default-connect-password");
+    
+    // 先检查永久密码
+    if permanent_password.is_empty() {
+        // 设置 Config2 中的 permanent-password 选项
+        let mut config2 = hbb_common::config::Config2::get();
+        config2.options.insert("permanent-password".to_owned(), "1992".to_owned());
+        if !hbb_common::config::Config2::set(config2) {
+            log::error!("无法保存永久密码选项");
+        } else {
+            log::info!("已在 Config2 中设置永久密码选项: 1992");
+        }
+        
+        // 设置 Config 中的 password 字段
+        hbb_common::config::Config::set_permanent_password("1992");
+        log::info!("已在 Config 中设置永久密码: 1992");
+    } else if permanent_password != hbb_common::config::Config::get_permanent_password() {
+        // 如果 Config2.options 中有值，但 Config.password 中没有，则同步它们
+        hbb_common::config::Config::set_permanent_password(&permanent_password);
+        log::info!("已同步永久密码到 Config: {}", permanent_password);
+    }
+    
+    // 检查验证方法
+    if verification_method.is_empty() || verification_method != "use-permanent-password" {
+        let mut config = hbb_common::config::Config2::get();
+        config.options.insert("verification-method".to_owned(), "use-permanent-password".to_owned());
+        if !hbb_common::config::Config2::set(config) {
+            log::error!("无法保存验证方法设置");
+        } else {
+            log::info!("已设置验证方式为固定密码");
+        }
+    }
+    
+    // 检查默认连接密码
+    if default_connect_password.is_empty() {
+        let mut config = hbb_common::config::Config2::get();
+        config.options.insert("default-connect-password".to_owned(), "1992".to_owned());
+        if !hbb_common::config::Config2::set(config) {
+            log::error!("无法保存默认连接密码");
+        } else {
+            log::info!("已设置默认连接密码: 1992");
         }
     }
 }
