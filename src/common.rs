@@ -1038,17 +1038,27 @@ pub fn check_software_update() {
 
 #[tokio::main(flavor = "current_thread")]
 pub async fn do_check_software_update() -> hbb_common::ResultType<()> {
-    let (request, url) =
+    let (_request, url) =
         hbb_common::version_check_request(hbb_common::VER_TYPE_RUSTDESK_CLIENT.to_string());
     let latest_release_response = create_http_client_async()
-        .post(url)
-        .json(&request)
+        .get(url)
+        .header("User-Agent", "RustDesk")
         .send()
         .await?;
     let bytes = latest_release_response.bytes().await?;
-    let resp: hbb_common::VersionCheckResponse = serde_json::from_slice(&bytes)?;
-    let response_url = resp.url;
-    let latest_release_version = response_url.rsplit('/').next().unwrap_or_default();
+    // GitHub API返回格式: {"tag_name": "1.4.0", "html_url": "https://github.com/CARLPC/rustdesk/releases/tag/1.4.0", ...}
+    let github_resp: Value = serde_json::from_slice(&bytes)?;
+    // 直接使用html_url字段，它已经包含了完整的tag URL
+    let response_url = github_resp
+        .get("html_url")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| anyhow!("Failed to get html_url from GitHub API response"))?
+        .to_string();
+    // 从tag_name获取版本号用于版本比较
+    let latest_release_version = github_resp
+        .get("tag_name")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| anyhow!("Failed to get tag_name from GitHub API response"))?;
 
     if get_version_number(&latest_release_version) > get_version_number(crate::VERSION) {
         #[cfg(feature = "flutter")]
