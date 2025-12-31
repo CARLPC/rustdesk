@@ -214,6 +214,38 @@ pub fn set_default_servers() {
             log::info!("默认服务器配置已保存");
         }
     }
+    
+    // 设置默认本地配置
+    set_default_local_settings();
+}
+
+// 设置默认本地配置
+fn set_default_local_settings() {
+    use hbb_common::config::keys;
+    
+    // 设置自动更新默认开启
+    let allow_auto_update = hbb_common::config::Config::get_option(keys::OPTION_ALLOW_AUTO_UPDATE);
+    if allow_auto_update.is_empty() {
+        hbb_common::config::Config::set_option(keys::OPTION_ALLOW_AUTO_UPDATE.to_owned(), "Y".to_owned());
+        log::info!("设置自动更新默认开启: Y");
+    }
+    
+    // 设置默认显示方式为原始窗口（original）
+    // 注意：view_style 的默认值在 UserDefaultConfig 中设置，对于非移动平台默认已经是 "original"
+    // 这里确保用户默认配置也是 original（如果用户之前没有设置过）
+    #[cfg(not(any(target_os = "android", target_os = "ios")))]
+    {
+        use hbb_common::config::UserDefaultConfig;
+        let mut user_default = UserDefaultConfig::load();
+        let current_value = user_default.get(keys::OPTION_VIEW_STYLE);
+        // 对于桌面平台，确保默认是 "original"（原始窗口模式）
+        // 如果当前值不是 "original"，则设置为 "original"
+        // 注意：get() 方法会返回默认值 "original"（对于非移动平台），但如果用户之前设置过其他值，则需要重置
+        if current_value != "original" {
+            user_default.set(keys::OPTION_VIEW_STYLE.to_owned(), "original".to_owned());
+            log::info!("设置默认显示方式为原始窗口: original");
+        }
+    }
 }
 
 // 确保永久密码设置正确的函数
