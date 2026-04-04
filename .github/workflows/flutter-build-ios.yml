@@ -130,15 +130,27 @@ jobs:
           # for easy debugging
           flutter build ipa --release --no-codesign
 
+      - name: List build directory contents
+        shell: bash
+        run: |
+          echo "Checking flutter build directory..."
+          ls -la flutter/build/ || echo "flutter/build/ does not exist"
+          echo "Checking ios build directory..."
+          ls -la flutter/build/ios/ || echo "flutter/build/ios/ does not exist"
+          echo "Checking ipa directory..."
+          ls -la flutter/build/ios/ipa/ || echo "flutter/build/ios/ipa/ does not exist"
+          echo "Finding all .ipa files..."
+          find flutter -name "*.ipa" || echo "No .ipa files found"
+
       - name: Upload Artifacts
-        if: env.UPLOAD_ARTIFACT == 'true'
+        if: inputs.upload-artifact
         uses: actions/upload-artifact@master
         with:
           name: rustdesk-ios-ipa
           path: flutter/build/ios/ipa/*.ipa
 
       - name: Publish ipa package
-        if: env.UPLOAD_ARTIFACT == 'true' && startsWith(github.ref, 'refs/tags/')
+        if: inputs.upload-artifact && startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v1
         with:
           prerelease: true
