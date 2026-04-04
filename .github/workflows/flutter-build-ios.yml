@@ -161,25 +161,28 @@ jobs:
           # Copy .app to Payload directory
           cp -r "$APP_PATH" flutter/build/ios/ipa/Payload/
           
-          # Create IPA file
-          cd flutter/build/ios/ipa/
+          # Create IPA file (ensure correct zip structure)
+          pushd flutter/build/ios/ipa/
           zip -r RustDesk.ipa Payload/
+          popd
           
           echo "IPA file created successfully:"
-          ls -la RustDesk.ipa
+          ls -la flutter/build/ios/ipa/
+          echo "Checking upload-artifact input value: ${{ inputs.upload-artifact }}"
+          echo "Checking github.ref: ${{ github.ref }}"
 
       - name: Upload Artifacts
-        if: inputs.upload-artifact
-        uses: actions/upload-artifact@master
+        if: ${{ inputs.upload-artifact }}
+        uses: actions/upload-artifact@v4
         with:
           name: rustdesk-ios-ipa
           path: flutter/build/ios/ipa/*.ipa
+          if-no-files-found: error
 
       - name: Publish ipa package
-        if: inputs.upload-artifact && startsWith(github.ref, 'refs/tags/')
+        if: ${{ inputs.upload-artifact && startsWith(github.ref, 'refs/tags/') }}
         uses: softprops/action-gh-release@v1
         with:
           prerelease: true
           tag_name: ${{ env.TAG_NAME }}
-          files: |
-            flutter/build/ios/ipa/*.ipa
+          files: flutter/build/ios/ipa/RustDesk.ipa
