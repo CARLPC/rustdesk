@@ -141,6 +141,32 @@ jobs:
           ls -la flutter/build/ios/ipa/ || echo "flutter/build/ios/ipa/ does not exist"
           echo "Finding all .ipa files..."
           find flutter -name "*.ipa" || echo "No .ipa files found"
+          echo "Finding all .app files..."
+          find flutter -name "*.app" || echo "No .app files found"
+
+      - name: Manually create IPA file
+        shell: bash
+        run: |
+          # Find the .app file
+          APP_PATH=$(find flutter -name "Runner.app" -type d | head -n 1)
+          if [ -z "$APP_PATH" ]; then
+            echo "Error: Runner.app not found"
+            exit 1
+          fi
+          echo "Found Runner.app at: $APP_PATH"
+          
+          # Create Payload directory
+          mkdir -p flutter/build/ios/ipa/Payload
+          
+          # Copy .app to Payload directory
+          cp -r "$APP_PATH" flutter/build/ios/ipa/Payload/
+          
+          # Create IPA file
+          cd flutter/build/ios/ipa/
+          zip -r RustDesk.ipa Payload/
+          
+          echo "IPA file created successfully:"
+          ls -la RustDesk.ipa
 
       - name: Upload Artifacts
         if: inputs.upload-artifact
