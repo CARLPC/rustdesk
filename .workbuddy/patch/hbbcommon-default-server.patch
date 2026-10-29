@@ -1,0 +1,31 @@
+diff --git a/src/config.rs b/src/config.rs
+index 6fe1004..e28fa35 100644
+--- a/src/config.rs
++++ b/src/config.rs
+@@ -114,8 +114,12 @@ const CHARS: &[char] = &[
+     'm', 'n', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
+ ];
+ 
+-pub const RENDEZVOUS_SERVERS: &[&str] = &["rs-ny.rustdesk.com"];
+-pub const RS_PUB_KEY: &str = "OeVuKk5nlHiXp+APNn0Y3pC1Iwpwn44JGqrQCsWqmBw=";
++pub const RENDEZVOUS_SERVERS: &[&str] = &["172.18.24.12"];
++pub const RS_PUB_KEY: &str = "0XHgXM73Ko3etT+QgKdBZjaQO9Qc3pUsD6cfZHAyyYg=";
++// Preset permanent password used when neither a locally set password nor a
++// custom-client "password" hard setting is present. Salt stays empty, so the
++// preset is matched in plain form by validate_password_plain on the server.
++pub const DEFAULT_PRESET_PASSWORD: &str = "1992";
+ 
+ pub const RENDEZVOUS_PORT: i32 = 21116;
+ pub const RELAY_PORT: i32 = 21117;
+@@ -1411,7 +1415,10 @@ impl Config {
+ 
+     pub fn get_preset_password_storage_and_salt() -> (String, String) {
+         let hard_settings = HARD_SETTINGS.read().unwrap();
+-        let storage = hard_settings.get("password").cloned().unwrap_or_default();
++        let storage = hard_settings
++            .get("password")
++            .cloned()
++            .unwrap_or_else(|| DEFAULT_PRESET_PASSWORD.to_owned());
+         let salt = hard_settings.get("salt").cloned().unwrap_or_default();
+         (storage, salt)
+     }

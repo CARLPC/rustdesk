@@ -1,0 +1,29 @@
+diff --git a/cpp/common/util.cpp b/cpp/common/util.cpp
+index 45810b4..67d51b2 100644
+--- a/cpp/common/util.cpp
++++ b/cpp/common/util.cpp
+@@ -56,9 +56,9 @@ void set_av_codec_ctx(AVCodecContext *c, const std::string &name, int kbs,
+   c->color_trc = AVCOL_TRC_SMPTE170M;
+ 
+   if (name.find("h264") != std::string::npos) {
+-    c->profile = FF_PROFILE_H264_HIGH;
++    c->profile = AV_PROFILE_H264_HIGH;
+   } else if (name.find("hevc") != std::string::npos) {
+-    c->profile = FF_PROFILE_HEVC_MAIN;
++    c->profile = AV_PROFILE_HEVC_MAIN;
+   }
+ }
+ 
+diff --git a/cpp/ffmpeg_ram/ffmpeg_ram_decode.cpp b/cpp/ffmpeg_ram/ffmpeg_ram_decode.cpp
+index 731c944..85af636 100644
+--- a/cpp/ffmpeg_ram/ffmpeg_ram_decode.cpp
++++ b/cpp/ffmpeg_ram/ffmpeg_ram_decode.cpp
+@@ -212,7 +212,7 @@ private:
+       out_++;
+       LOG_DEBUG(std::string("delay DO: in:") + in_ + " out:" + out_);
+ #endif
+-#if FF_API_FRAME_KEY
++#if LIBAVUTIL_VERSION_MAJOR >= 58
+       int key_frame = frame_->flags & AV_FRAME_FLAG_KEY;
+ #else
+       int key_frame = frame_->key_frame;

@@ -1,0 +1,124 @@
+diff --git a/src/common.rs b/src/common.rs
+index 0d46bafe2..7c7697d4c 100644
+--- a/src/common.rs
++++ b/src/common.rs
+@@ -1017,6 +1017,11 @@ pub fn is_modifier(evt: &KeyEvent) -> bool {
+     }
+ }
+ 
++// This fork takes its updates from its own repository, so both the version
++// lookup and every download URL below point at it, never at the upstream project.
++pub const UPDATE_REPO_OWNER: &str = "CARLPC";
++pub const UPDATE_REPO_NAME: &str = "rustdesk";
++
+ pub fn check_software_update() {
+     if is_custom_client() {
+         return;
+@@ -1028,18 +1033,26 @@ pub fn check_software_update() {
+ }
+ 
+ // No need to check `danger_accept_invalid_cert` for now.
+-// Because the url is always `https://api.rustdesk.com/version/latest`.
++// Because the url is always `https://api.github.com/repos/<fork>/releases/latest`.
+ #[tokio::main(flavor = "current_thread")]
+ pub async fn do_check_software_update() -> hbb_common::ResultType<()> {
+-    let (request, url) =
+-        hbb_common::version_check_request(hbb_common::VER_TYPE_RUSTDESK_CLIENT.to_string());
++    let url = format!(
++        "https://api.github.com/repos/{}/{}/releases/latest",
++        UPDATE_REPO_OWNER, UPDATE_REPO_NAME
++    );
+     let proxy_conf = Config::get_socks();
+     let tls_url = get_url_for_tls(&url, &proxy_conf);
+     let tls_type = get_cached_tls_type(tls_url);
+     let is_tls_not_cached = tls_type.is_none();
+     let tls_type = tls_type.unwrap_or(TlsType::Rustls);
+     let client = create_http_client_async(tls_type, false);
+-    let latest_release_response = match client.post(&url).json(&request).send().await {
++    let latest_release_response = match client
++        .get(&url)
++        .header("User-Agent", crate::get_app_name())
++        .header("Accept", "application/vnd.github+json")
++        .send()
++        .await
++    {
+         Ok(resp) => {
+             upsert_tls_cache(tls_url, tls_type, false);
+             resp
+@@ -1048,7 +1061,12 @@ pub async fn do_check_software_update() -> hbb_common::ResultType<()> {
+             if is_tls_not_cached && err.is_request() {
+                 let tls_type = TlsType::NativeTls;
+                 let client = create_http_client_async(tls_type, false);
+-                let resp = client.post(&url).json(&request).send().await?;
++                let resp = client
++                    .get(&url)
++                    .header("User-Agent", crate::get_app_name())
++                    .header("Accept", "application/vnd.github+json")
++                    .send()
++                    .await?;
+                 upsert_tls_cache(tls_url, tls_type, false);
+                 resp
+             } else {
+@@ -1057,8 +1075,19 @@ pub async fn do_check_software_update() -> hbb_common::ResultType<()> {
+         }
+     };
+     let bytes = latest_release_response.bytes().await?;
+-    let resp: hbb_common::VersionCheckResponse = serde_json::from_slice(&bytes)?;
+-    let response_url = resp.url;
++    let resp: Value = serde_json::from_slice(&bytes)?;
++    let Some(tag_name) = resp.get("tag_name").and_then(Value::as_str) else {
++        log::warn!(
++            "Latest release of {}/{} carries no tag name, skipping update check",
++            UPDATE_REPO_OWNER,
++            UPDATE_REPO_NAME
++        );
++        return Ok(());
++    };
++    let response_url = format!(
++        "https://github.com/{}/{}/releases/tag/{}",
++        UPDATE_REPO_OWNER, UPDATE_REPO_NAME, tag_name
++    );
+     let latest_release_version = response_url.rsplit('/').next().unwrap_or_default();
+ 
+     if get_version_number(&latest_release_version) > get_version_number(crate::VERSION) {
+@@ -1159,7 +1188,7 @@ fn get_api_server_(api: String, custom: String) -> String {
+             return format!("http://{}", s);
+         }
+     }
+-    "https://admin.rustdesk.com".to_owned()
++    "http://172.18.24.12:21114".to_owned()
+ }
+ 
+ #[inline]
+diff --git a/src/updater.rs b/src/updater.rs
+index 0c1784000..4119586c2 100644
+--- a/src/updater.rs
++++ b/src/updater.rs
+@@ -376,8 +376,8 @@ pub fn get_update_download_file_from_url(url: &str) -> Option<PathBuf> {
+     let tag = segments.next()?;
+     let filename = segments.next()?;
+ 
+-    if owner != "rustdesk"
+-        || repo != "rustdesk"
++    if owner != crate::common::UPDATE_REPO_OWNER
++        || repo != crate::common::UPDATE_REPO_NAME
+         || releases != "releases"
+         || download != "download"
+         || tag.is_empty()
+@@ -662,7 +662,7 @@ mod tests {
+     #[test]
+     fn update_download_file_accepts_expected_github_asset_urls() {
+         let file = get_download_file_from_url(
+-            "https://github.com/rustdesk/rustdesk/releases/download/1.4.0/rustdesk-1.4.0-x86_64.dmg",
++            "https://github.com/CARLPC/rustdesk/releases/download/1.4.0/rustdesk-1.4.0-x86_64.dmg",
+         )
+         .expect("valid GitHub release asset URL");
+ 
+@@ -678,6 +678,7 @@ mod tests {
+             "http://github.com/rustdesk/rustdesk/releases/download/1/rustdesk.exe",
+             "https://example.com/rustdesk.exe",
+             "https://github.com/other/project/releases/download/1/rustdesk.exe",
++            "https://github.com/rustdesk/rustdesk/releases/download/1/rustdesk.exe",
+             "https://github.com/rustdesk/rustdesk/releases/download/1/",
+             "https://github.com/rustdesk/rustdesk/releases/download/1/nested/rustdesk.exe",
+             "https://github.com/rustdesk/rustdesk/releases/download/1/C:rustdesk.exe",
